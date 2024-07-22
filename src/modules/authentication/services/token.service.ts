@@ -3,7 +3,7 @@ import { User } from "../../users/user.model";
 import { TokenRepository } from "../repository/token.repository";
 
 export class TokenService {
-  private SECRET_KEY = process.env.SECRET_KEY!;
+  private SECRET_KEY = process.env.SECRET_KEY_TOKEN!;
 
   constructor(private tokenRepository: TokenRepository) {}
 
