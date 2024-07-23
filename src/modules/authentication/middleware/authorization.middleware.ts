@@ -12,11 +12,9 @@ export class AuthorizationMiddleware {
     try {
       const SECRET_KEY = process.env.SECRET_KEY_TOKEN!;
       const token = tokenWithBearer.split(" ")[1];
-      const tokenDecoded = jwt.verify(token, SECRET_KEY) as TokenDecoded;
-      console.log("tokenDecoded", tokenDecoded);
+      jwt.verify(token, SECRET_KEY) as TokenDecoded;
       next();
     } catch (error) {
-      console.error(error);
       res.status(403).json({ message: "Invalid token" });
     }
   }
