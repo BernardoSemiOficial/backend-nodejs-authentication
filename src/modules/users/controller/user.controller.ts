@@ -1,9 +1,8 @@
 import { Request, Response, Router } from "express";
+import { userRepository } from "../../..";
 import { AuthorizationMiddleware } from "../../authentication/middleware/authorization.middleware";
-import { UserRepository } from "../repository/user.repository";
 
 const userRouter = Router();
-const userRepository = new UserRepository();
 
 userRouter.get(
   "/users",

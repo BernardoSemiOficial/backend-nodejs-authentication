@@ -1,18 +1,15 @@
+import { randomUUID } from "crypto";
 import { Response, Router } from "express";
+import { tokenService, userService } from "../../..";
 import { TypedRequestBody } from "../../../interfaces/request";
-import { UserService } from "../../users/services/user.service";
-import { LoginPayload } from "../interfaces/login.interface";
-import { TokenRepository } from "../repository/token.repository";
-
-import { UserRepository } from "../../users/repository/user.repository";
-import { TokenService } from "../services/token.service";
+import {
+  LoginPayload,
+  RefreshTokenPayload,
+  UserCreatePayload,
+} from "../interfaces/authentication.interface";
+import { TokenPayload } from "../token.model";
 
 const authenticationRouter = Router();
-const userService = new UserService(
-  new TokenService(new TokenRepository()),
-  new UserRepository()
-);
-const tokenRepository = new TokenRepository();
 
 authenticationRouter.post(
   "/login",
@@ -32,24 +29,54 @@ authenticationRouter.post(
       return res.status(401).json({ message: "Email or password are wrong" });
     }
 
-    const accessToken = userService.generateToken(
-      {
-        email,
-        id: userInDatabase?.id,
-        name: userInDatabase.name,
-      },
-      { isAccessToken: true }
-    );
-    const refreshToken = userService.generateToken(
-      {
-        email,
-        id: userInDatabase?.id,
-        name: userInDatabase.name,
-      },
-      { isAccessToken: false }
-    );
+    const tokenPayload: TokenPayload = {
+      id: userInDatabase.id,
+      email: userInDatabase.email,
+    };
+    const accessToken = userService.generateToken(tokenPayload, {
+      isAccessToken: true,
+    });
+    const refreshToken = userService.generateToken(tokenPayload, {
+      isAccessToken: false,
+    });
 
     res.json({ accessToken, refreshToken });
+  }
+);
+
+authenticationRouter.post(
+  "/register",
+  (req: TypedRequestBody<UserCreatePayload>, res: Response) => {
+    const { email, name, password } = req.body;
+    const user = userService.createUser({
+      id: randomUUID(),
+      email,
+      name,
+      password,
+    });
+    res.json(user).status(201);
+  }
+);
+
+authenticationRouter.post(
+  "/refresh-token",
+  (req: TypedRequestBody<RefreshTokenPayload>, res: Response) => {
+    const { refreshToken } = req.body;
+    const tokenDecoded = tokenService.verifyToken(refreshToken);
+    const userId = tokenDecoded.id;
+    const userInDatabase = userService.findUserById(userId);
+
+    if (!userInDatabase) {
+      return res.status(404).json({ message: "Cannot generate a new token" });
+    }
+    const tokenPayload: TokenPayload = {
+      id: userInDatabase.id,
+      email: userInDatabase.email,
+    };
+    const accessToken = userService.generateToken(tokenPayload, {
+      isAccessToken: true,
+    });
+    res.json({ accessToken }).status(201);
   }
 );
 

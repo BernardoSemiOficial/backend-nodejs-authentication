@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-
-const SECRET_KEY = process.env.SECRET_KEY_TOKEN!;
+import { TokenDecoded } from "../token.model";
 
 export class AuthorizationMiddleware {
   static verifyToken(req: Request, res: Response, next: NextFunction) {
@@ -10,12 +9,15 @@ export class AuthorizationMiddleware {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const token = tokenWithBearer.split(" ")[1];
-    jwt.verify(token, SECRET_KEY, (error, tokenDecoded) => {
-      if (error) return res.status(403).json({ message: "Invalid token" });
+    try {
+      const SECRET_KEY = process.env.SECRET_KEY_TOKEN!;
+      const token = tokenWithBearer.split(" ")[1];
+      const tokenDecoded = jwt.verify(token, SECRET_KEY) as TokenDecoded;
       console.log("tokenDecoded", tokenDecoded);
-      // req.user = tokenDecoded;
       next();
-    });
+    } catch (error) {
+      console.error(error);
+      res.status(403).json({ message: "Invalid token" });
+    }
   }
 }

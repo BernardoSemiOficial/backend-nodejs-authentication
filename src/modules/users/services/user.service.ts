@@ -1,6 +1,7 @@
 import { TokenService } from "../../authentication/services/token.service";
+import { TokenPayload } from "../../authentication/token.model";
 import { UserRepository } from "../repository/user.repository";
-import { User } from "../user.model";
+import { UserInDatabase } from "../user.model";
 
 export class UserService {
   constructor(
@@ -8,11 +9,22 @@ export class UserService {
     private userRepository: UserRepository
   ) {}
 
-  generateToken(user: User, { isAccessToken }: { isAccessToken: boolean }) {
+  generateToken(
+    user: TokenPayload,
+    { isAccessToken }: { isAccessToken: boolean }
+  ) {
     return this.tokenService.generateTokenUser(user, { isAccessToken });
+  }
+
+  findUserById(id: string) {
+    return this.userRepository.findById(id);
   }
 
   findUserByEmail(email: string) {
     return this.userRepository.findByEmail(email);
+  }
+
+  createUser(user: UserInDatabase) {
+    return this.userRepository.create(user);
   }
 }

@@ -1,10 +1,14 @@
+import { JwtPayload } from "jsonwebtoken";
+
 export interface TokenPayload {
-  id: number;
+  id: string;
   email: string;
 }
 
 export interface Token {
-  userId: number;
+  userId: string;
   accessToken: string;
   isRevoked: boolean;
 }
+
+export interface TokenDecoded extends TokenPayload, JwtPayload {}

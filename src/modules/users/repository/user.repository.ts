@@ -1,22 +1,18 @@
 import { UserInDatabase } from "../user.model";
 
 export class UserRepository {
-  private users: UserInDatabase[] = [
-    {
-      id: 1,
-      name: "user1",
-      email: "user1@gmail.com",
-      password: "password1",
-    },
-  ];
-  create(user: UserInDatabase): void {
+  private users: UserInDatabase[] = [];
+
+  create(user: UserInDatabase): UserInDatabase | undefined {
     if (!user) return;
     this.users.push(user);
+    console.log({ users: this.users });
+    return user;
   }
   findByEmail(email: string): UserInDatabase | undefined {
     return this.users.find((user) => user.email === email);
   }
-  findById(id: number): UserInDatabase | undefined {
+  findById(id: string): UserInDatabase | undefined {
     return this.users.find((user) => user.id === id);
   }
   findAllUsers(): UserInDatabase[] {
