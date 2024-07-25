@@ -5,7 +5,7 @@ import { AuthorizationMiddleware } from "../../authentication/middleware/authori
 const userRouter = Router();
 
 userRouter.get(
-  "/users",
+  "/api/users",
   AuthorizationMiddleware.verifyToken,
   (req: Request, res: Response) => {
     const users = userRepository.findAllUsers();

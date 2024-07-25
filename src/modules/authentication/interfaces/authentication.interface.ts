@@ -3,10 +3,16 @@ export interface LoginPayload {
   password: string;
 }
 
-export interface UserCreatePayload {
+export interface RegisterPayload {
   name: string;
   email: string;
   password: string;
+}
+
+export interface RegisterResponse {
+  id: string;
+  name: string;
+  email: string;
 }
 
 export interface RefreshTokenPayload {

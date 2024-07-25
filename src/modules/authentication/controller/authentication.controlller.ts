@@ -5,14 +5,14 @@ import { TypedRequestBody } from "../../../interfaces/request";
 import {
   LoginPayload,
   RefreshTokenPayload,
-  UserCreatePayload,
+  RegisterPayload,
 } from "../interfaces/authentication.interface";
 import { TokenPayload } from "../token.model";
 
 const authenticationRouter = Router();
 
 authenticationRouter.post(
-  "/login",
+  "/api/auth/login",
   (req: TypedRequestBody<LoginPayload>, res: Response) => {
     const { email, password } = req.body;
 
@@ -45,8 +45,8 @@ authenticationRouter.post(
 );
 
 authenticationRouter.post(
-  "/register",
-  (req: TypedRequestBody<UserCreatePayload>, res: Response) => {
+  "/api/auth/register",
+  (req: TypedRequestBody<RegisterPayload>, res: Response) => {
     const { email, name, password } = req.body;
     const user = userService.createUser({
       id: randomUUID(),
@@ -59,7 +59,7 @@ authenticationRouter.post(
 );
 
 authenticationRouter.post(
-  "/refresh-token",
+  "/api/auth/refresh-token",
   (req: TypedRequestBody<RefreshTokenPayload>, res: Response) => {
     const { refreshToken } = req.body;
     const tokenDecoded = tokenService.verifyToken(refreshToken);

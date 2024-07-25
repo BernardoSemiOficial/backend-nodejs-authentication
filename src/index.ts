@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import cors from "cors";
 import express, { Request, Response, Router } from "express";
 import { authenticationRouter } from "./modules/authentication/controller/authentication.controlller";
 import { TokenRepository } from "./modules/authentication/repository/token.repository";
@@ -13,6 +14,7 @@ const app = express();
 const route = Router();
 const port = 3000;
 
+app.use(cors());
 app.use(express.json());
 
 export const tokenRepository = new TokenRepository();
