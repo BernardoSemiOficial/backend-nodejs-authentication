@@ -153,7 +153,7 @@ Resposta de erro:
 
 1. Instale as dependências do projeto executando o comando `npm install`.
 
-2. Crie um arquivo `.env` na raiz do projeto e defina as variáveis de ambiente necessárias.
+2. Crie um arquivo `.env` na raiz do projeto e defina as variáveis de ambiente necessárias. Tem um arquivo `.env.exemple` que servirá de exemplo para criar a variável utilizada para ser a chave, ela pode ser qualquer texto de sua escolha.
 
 3. Execute o comando `npm run dev` para iniciar o servidor.
 
