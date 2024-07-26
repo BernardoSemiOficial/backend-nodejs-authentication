@@ -15,7 +15,7 @@ export class AuthorizationMiddleware {
       jwt.verify(token, SECRET_KEY) as TokenDecoded;
       next();
     } catch (error) {
-      res.status(403).json({ message: "Invalid token" });
+      res.status(401).json({ message: "Invalid token" });
     }
   }
 }
