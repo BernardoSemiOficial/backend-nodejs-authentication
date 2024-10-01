@@ -3,8 +3,7 @@ import { UserInDatabase } from "../user.model";
 export class UserRepository {
   private users: UserInDatabase[] = [];
 
-  create(user: UserInDatabase): UserInDatabase | undefined {
-    if (!user) return;
+  create(user: UserInDatabase): UserInDatabase {
     this.users.push(user);
     console.log({ users: this.users });
     return user;

@@ -1,8 +1,13 @@
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { randomUUID } from "crypto";
 import { Response, Router } from "express";
 import { tokenService, userService } from "../../..";
-import { TypedRequestBody } from "../../../interfaces/request";
+import { http } from "../../../http/axios";
+import { UserGithub } from "../../../interfaces/github";
+import {
+  TypedRequestBody,
+  TypedRequestQuery,
+} from "../../../interfaces/request";
 import {
   AuthGithubPayload,
   LoginPayload,
@@ -84,12 +89,12 @@ authenticationRouter.post(
 
 authenticationRouter.post(
   "/api/auth/github",
-  async (req: TypedRequestBody<AuthGithubPayload>, res: Response) => {
-    const { code } = req.params;
+  async (req: TypedRequestQuery<AuthGithubPayload>, res: Response) => {
+    const { code } = req.query;
     let tokenGithub = null;
 
     try {
-      tokenGithub = await axios.post<{
+      tokenGithub = await http.post<{
         access_token: string;
         token_type: string;
         scode: string;
@@ -102,28 +107,24 @@ authenticationRouter.post(
       return res.status(400).json({ message: "Intern error" });
     }
 
-    console.log(tokenGithub.data);
     if (!tokenGithub) {
       return res.status(401).json({ message: "Error to get token" });
     }
 
-    const accessToken = tokenGithub.data.access_token;
-    const tokenType = tokenGithub.data.token_type;
+    const accessTokenGithub = tokenGithub.data.access_token;
+    const tokenTypeGithub = tokenGithub.data.token_type;
 
     let userGithub = null;
     try {
-      userGithub = await axios.get<{ login: string }>(
-        "https://api.github.com/user",
-        {
-          headers: {
-            Accept: "application/json",
-            Authorization: `${tokenType} ${accessToken}`,
-          },
-        }
-      );
+      userGithub = await http.get<UserGithub>("https://api.github.com/user", {
+        headers: {
+          Accept: "application/json",
+          Authorization: `${tokenTypeGithub} ${accessTokenGithub}`,
+        },
+      });
     } catch (error) {
       console.log((error as AxiosError).message);
-      return res.status(401).json({ message: "Intern error" });
+      return res.status(400).json({ message: "Intern error" });
     }
 
     console.log(userGithub.data);
@@ -132,14 +133,25 @@ authenticationRouter.post(
       return res.status(401).json({ message: "Error to get token" });
     }
 
-    userService.createUser({
+    const userInDatabase = userService.createUser({
       id: randomUUID(),
-      email: "",
-      name: userGithub.data.login,
-      password: "",
+      email: userGithub.data.email ?? "no-email",
+      name: userGithub.data.name,
+      password: "github",
     });
 
-    return res.json({ user: userGithub.data, accessToken, tokenType });
+    const tokenPayload: TokenPayload = {
+      id: userInDatabase.id,
+      email: userInDatabase.email,
+    };
+    const accessToken = userService.generateToken(tokenPayload, {
+      isAccessToken: true,
+    });
+    const refreshToken = userService.generateToken(tokenPayload, {
+      isAccessToken: false,
+    });
+
+    return res.json({ user: userGithub.data, accessToken, refreshToken });
   }
 );
 

@@ -20,5 +20,6 @@ export interface RefreshTokenPayload {
 }
 
 export interface AuthGithubPayload {
+  [key: string]: string;
   code: string;
 }
