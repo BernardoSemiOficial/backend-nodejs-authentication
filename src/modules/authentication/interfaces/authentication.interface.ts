@@ -18,3 +18,7 @@ export interface RegisterResponse {
 export interface RefreshTokenPayload {
   refreshToken: string;
 }
+
+export interface AuthGithubPayload {
+  code: string;
+}
