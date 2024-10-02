@@ -14,13 +14,14 @@ import {
   RefreshTokenPayload,
   RegisterPayload,
 } from "../interfaces/authentication.interface";
+import { BcriptService } from "../services/bcript.service";
 import { TokenPayload } from "../token.model";
 
 const authenticationRouter = Router();
 
 authenticationRouter.post(
   "/api/auth/login",
-  (req: TypedRequestBody<LoginPayload>, res: Response) => {
+  async (req: TypedRequestBody<LoginPayload>, res: Response) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -30,9 +31,13 @@ authenticationRouter.post(
     }
 
     const userInDatabase = userService.findUserByEmail(email);
-    const incorrectPassword = userInDatabase?.password !== password;
 
-    if (!userInDatabase || incorrectPassword) {
+    const isPasswordEqual = await BcriptService.compareHash(
+      password,
+      userInDatabase?.password ?? ""
+    );
+
+    if (!userInDatabase || !isPasswordEqual) {
       return res.status(401).json({ message: "Email or password are wrong" });
     }
 
@@ -53,13 +58,14 @@ authenticationRouter.post(
 
 authenticationRouter.post(
   "/api/auth/register",
-  (req: TypedRequestBody<RegisterPayload>, res: Response) => {
+  async (req: TypedRequestBody<RegisterPayload>, res: Response) => {
     const { email, name, password } = req.body;
+    const hashPassword = await BcriptService.generateHashPassword(password);
     const user = userService.createUser({
       id: randomUUID(),
       email,
       name,
-      password,
+      password: hashPassword,
     });
     res.json(user).status(201);
   }

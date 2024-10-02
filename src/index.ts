@@ -29,5 +29,9 @@ route.get("/", (req: Request, res: Response) => {
   res.json({ message: "Hello world" });
 });
 
+route.get("/login", (req: Request, res: Response) => {
+  res.redirect("http://localhost:4200/register");
+});
+
 app.use(route);
 app.listen(port, () => `server running on port ${port}`);
