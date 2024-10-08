@@ -1,7 +1,9 @@
 import { AxiosError } from "axios";
 import { randomUUID } from "crypto";
 import { Response, Router } from "express";
+import { google } from "googleapis";
 import { tokenService, userService } from "../../..";
+import { oauth2Client } from "../../../auth/google";
 import { http } from "../../../http/axios";
 import { UserGithub } from "../../../interfaces/github";
 import {
@@ -10,6 +12,7 @@ import {
 } from "../../../interfaces/request";
 import {
   AuthGithubPayload,
+  AuthGooglePayload,
   LoginPayload,
   RefreshTokenPayload,
   RegisterPayload,
@@ -158,6 +161,43 @@ authenticationRouter.post(
     });
 
     return res.json({ user: userGithub.data, accessToken, refreshToken });
+  }
+);
+
+authenticationRouter.get("/api/auth/google", (req, res: Response) => {
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: ["profile", "email"],
+  });
+  res.redirect(authUrl);
+});
+
+// Extend the Session interface to include the user property
+declare module "express-session" {
+  interface Session {
+    user: any;
+  }
+}
+
+// Callback para o Google OAuth2
+authenticationRouter.post(
+  "/api/auth/google",
+  async (req: TypedRequestQuery<AuthGooglePayload>, res) => {
+    const { code } = req.query;
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // Obtendo informações do perfil do usuário
+    const oauth2 = google.oauth2({
+      auth: oauth2Client,
+      version: "v2",
+    });
+    const userInfo = await oauth2.userinfo.get();
+    req.session.user = userInfo.data;
+
+    console.log(userInfo);
+
+    res.redirect("/dashboard");
   }
 );
 

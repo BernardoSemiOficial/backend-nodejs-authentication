@@ -23,3 +23,8 @@ export interface AuthGithubPayload {
   [key: string]: string;
   code: string;
 }
+
+export interface AuthGooglePayload {
+  [key: string]: string;
+  code: string;
+}
