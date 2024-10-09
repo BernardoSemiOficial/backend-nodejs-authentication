@@ -169,7 +169,7 @@ authenticationRouter.get("/api/auth/google", (req, res: Response) => {
     access_type: "offline",
     scope: ["profile", "email"],
   });
-  res.redirect(authUrl);
+  res.json({ url: authUrl });
 });
 
 // Extend the Session interface to include the user property
@@ -187,17 +187,34 @@ authenticationRouter.post(
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    // Obtendo informações do perfil do usuário
     const oauth2 = google.oauth2({
       auth: oauth2Client,
       version: "v2",
     });
-    const userInfo = await oauth2.userinfo.get();
-    req.session.user = userInfo.data;
+    const userGoogle = await oauth2.userinfo.get();
+    req.session.user = userGoogle.data;
 
-    console.log(userInfo);
+    console.log(userGoogle);
 
-    res.redirect("/dashboard");
+    const userInDatabase = userService.createUser({
+      id: randomUUID(),
+      email: userGoogle.data.email ?? "no-email",
+      name: userGoogle.data.name ?? "no-name",
+      password: "google",
+    });
+
+    const tokenPayload: TokenPayload = {
+      id: userInDatabase.id,
+      email: userInDatabase.email,
+    };
+    const accessToken = userService.generateToken(tokenPayload, {
+      isAccessToken: true,
+    });
+    const refreshToken = userService.generateToken(tokenPayload, {
+      isAccessToken: false,
+    });
+
+    return res.json({ user: userGoogle.data, accessToken, refreshToken });
   }
 );
 
