@@ -1,8 +1,10 @@
 import { JwtPayload } from "jsonwebtoken";
+import { AuthenticationProvider } from "../users/user.model";
 
 export interface TokenPayload {
   id: string;
   email: string;
+  provider: AuthenticationProvider | null;
 }
 
 export interface Token {

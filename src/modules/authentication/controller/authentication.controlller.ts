@@ -2,6 +2,7 @@ import { AxiosError } from "axios";
 import { randomUUID } from "crypto";
 import { Response, Router } from "express";
 import { google } from "googleapis";
+import { z } from "zod";
 import { tokenService, userService } from "../../..";
 import { oauth2Client } from "../../../auth/google";
 import { http } from "../../../http/axios";
@@ -10,6 +11,7 @@ import {
   TypedRequestBody,
   TypedRequestQuery,
 } from "../../../interfaces/request";
+import { AuthenticationProvider, UserResponse } from "../../users/user.model";
 import {
   AuthGithubPayload,
   AuthGooglePayload,
@@ -47,6 +49,7 @@ authenticationRouter.post(
     const tokenPayload: TokenPayload = {
       id: userInDatabase.id,
       email: userInDatabase.email,
+      provider: null,
     };
     const accessToken = userService.generateToken(tokenPayload, {
       isAccessToken: true,
@@ -55,7 +58,13 @@ authenticationRouter.post(
       isAccessToken: false,
     });
 
-    res.json({ accessToken, refreshToken });
+    res
+      .json({
+        accessToken,
+        refreshToken,
+        user: new UserResponse(userInDatabase, null),
+      })
+      .status(200);
   }
 );
 
@@ -69,6 +78,8 @@ authenticationRouter.post(
       email,
       name,
       password: hashPassword,
+      provider: null,
+      idProvider: null,
     });
     res.json(user).status(201);
   }
@@ -88,6 +99,7 @@ authenticationRouter.post(
     const tokenPayload: TokenPayload = {
       id: userInDatabase.id,
       email: userInDatabase.email,
+      provider: userInDatabase.provider,
     };
     const accessToken = userService.generateToken(tokenPayload, {
       isAccessToken: true,
@@ -136,22 +148,60 @@ authenticationRouter.post(
       return res.status(400).json({ message: "Intern error" });
     }
 
-    console.log(userGithub.data);
-
     if (!userGithub) {
       return res.status(401).json({ message: "Error to get token" });
     }
 
-    const userInDatabase = userService.createUser({
-      id: randomUUID(),
-      email: userGithub.data.email ?? "no-email",
-      name: userGithub.data.name,
-      password: "github",
-    });
+    console.log(userGithub.data);
+
+    const userEmail = z.string().parse(userGithub.data.email);
+
+    const userInDatabase = userService.findUserByEmail(userEmail);
+
+    if (userInDatabase) {
+      const tokenPayload: TokenPayload = {
+        id: userInDatabase.id,
+        email: userInDatabase.email,
+        provider: userInDatabase.provider,
+      };
+      const accessToken = userService.generateToken(tokenPayload, {
+        isAccessToken: true,
+      });
+      const refreshToken = userService.generateToken(tokenPayload, {
+        isAccessToken: false,
+      });
+
+      return res.json({
+        user: new UserResponse(userInDatabase, { github: userGithub.data }),
+        accessToken,
+        refreshToken,
+      });
+    }
+
+    const user = z
+      .object({
+        id: z.string(),
+        email: z.string(),
+        name: z.string(),
+        idProvider: z.coerce.string(),
+        provider: z.nativeEnum(AuthenticationProvider),
+        password: z.string().nullable(),
+      })
+      .parse({
+        id: randomUUID(),
+        email: userGithub.data.email,
+        name: userGithub.data.name,
+        provider: AuthenticationProvider.GITHUB,
+        idProvider: userGithub.data.id,
+        password: null,
+      });
+
+    const userCreateInDatabase = userService.createUser(user);
 
     const tokenPayload: TokenPayload = {
-      id: userInDatabase.id,
-      email: userInDatabase.email,
+      id: userCreateInDatabase.id,
+      email: userCreateInDatabase.email,
+      provider: userCreateInDatabase.provider,
     };
     const accessToken = userService.generateToken(tokenPayload, {
       isAccessToken: true,
@@ -160,7 +210,11 @@ authenticationRouter.post(
       isAccessToken: false,
     });
 
-    return res.json({ user: userGithub.data, accessToken, refreshToken });
+    return res.json({
+      user: new UserResponse(userCreateInDatabase, { github: userGithub.data }),
+      accessToken,
+      refreshToken,
+    });
   }
 );
 
@@ -196,16 +250,54 @@ authenticationRouter.post(
 
     console.log(userGoogle);
 
-    const userInDatabase = userService.createUser({
-      id: randomUUID(),
-      email: userGoogle.data.email ?? "no-email",
-      name: userGoogle.data.name ?? "no-name",
-      password: "google",
-    });
+    const userEmail = z.string().parse(userGoogle.data.email);
+
+    const userInDatabase = userService.findUserByEmail(userEmail);
+
+    if (userInDatabase) {
+      const tokenPayload: TokenPayload = {
+        id: userInDatabase.id,
+        email: userInDatabase.email,
+        provider: userInDatabase.provider,
+      };
+      const accessToken = userService.generateToken(tokenPayload, {
+        isAccessToken: true,
+      });
+      const refreshToken = userService.generateToken(tokenPayload, {
+        isAccessToken: false,
+      });
+
+      return res.json({
+        user: new UserResponse(userInDatabase, { google: userGoogle.data }),
+        accessToken,
+        refreshToken,
+      });
+    }
+
+    const user = z
+      .object({
+        id: z.string(),
+        email: z.string(),
+        name: z.string(),
+        idProvider: z.string(),
+        provider: z.nativeEnum(AuthenticationProvider),
+        password: z.string().nullable(),
+      })
+      .parse({
+        id: randomUUID(),
+        email: userGoogle.data.email,
+        name: userGoogle.data.name,
+        provider: AuthenticationProvider.GOOGLE,
+        idProvider: userGoogle.data.id,
+        password: null,
+      });
+
+    const userCreateInDatabase = userService.createUser(user);
 
     const tokenPayload: TokenPayload = {
-      id: userInDatabase.id,
-      email: userInDatabase.email,
+      id: userCreateInDatabase.id,
+      email: userCreateInDatabase.email,
+      provider: userCreateInDatabase.provider,
     };
     const accessToken = userService.generateToken(tokenPayload, {
       isAccessToken: true,
@@ -214,7 +306,11 @@ authenticationRouter.post(
       isAccessToken: false,
     });
 
-    return res.json({ user: userGoogle.data, accessToken, refreshToken });
+    return res.json({
+      user: new UserResponse(userCreateInDatabase, { google: userGoogle.data }),
+      accessToken,
+      refreshToken,
+    });
   }
 );
 
